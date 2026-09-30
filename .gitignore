@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Test + report artifacts
+*.log
+reports/
+
+# Model weights / notebooks (never commit — several hundred MB)
+*.pt
+*.pth
+*.onnx
+.ipynb_checkpoints/
+colab/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Secrets
+.env

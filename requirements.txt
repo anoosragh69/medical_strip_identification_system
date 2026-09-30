@@ -1,0 +1,20 @@
+# Web service
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Vision + OCR
+opencv-python
+numpy
+pillow
+easyocr
+
+# Matching
+rapidfuzz
+
+# Tier 2 / tier 3 lookups
+requests
+duckduckgo_search
+
+# Testing
+pytest
