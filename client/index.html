@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1720" />
+  <title>Medicine Strip ID</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Medicine Strip ID</h1>
+    <p class="tagline">Photograph the strip — we read the text and identify it.</p>
+  </header>
+
+  <main>
+    <section class="capture">
+      <label class="btn primary" for="camera-input">
+        <span class="btn-icon" aria-hidden="true">&#128247;</span> Take photo
+      </label>
+      <input id="camera-input" type="file" accept="image/*" capture="environment" hidden />
+
+      <label class="btn" for="gallery-input">
+        <span class="btn-icon" aria-hidden="true">&#128444;</span> Choose from gallery
+      </label>
+      <input id="gallery-input" type="file" accept="image/*" hidden />
+    </section>
+
+    <section id="preview-wrap" class="preview-wrap" hidden>
+      <img id="preview" alt="Selected medicine strip" />
+    </section>
+
+    <section id="status" class="status" role="status" aria-live="polite" hidden></section>
+
+    <section id="result" class="result" hidden>
+      <div class="result-head">
+        <h2 id="result-name">—</h2>
+        <p id="result-generic" class="generic"></p>
+        <p class="meta">
+          <span id="result-tier" class="tier"></span>
+          <span id="result-confidence" class="confidence"></span>
+        </p>
+      </div>
+      <dl>
+        <dt>Uses</dt><dd id="result-uses">—</dd>
+        <dt>Dosage</dt><dd id="result-dosage">—</dd>
+        <dt>Side effects</dt><dd id="result-side-effects">—</dd>
+      </dl>
+      <p class="disclaimer">Informational only — not a substitute for a pharmacist or doctor.</p>
+    </section>
+
+    <details id="raw" class="raw" hidden>
+      <summary>Raw response</summary>
+      <pre id="raw-json"></pre>
+    </details>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
