@@ -23,20 +23,25 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [x] `A+B` Repo + folder structure created
 - [x] `B` FastAPI skeleton returns dummy JSON
 - [x] `B` Client camera/gallery capture + raw JSON display
-- [ ] `A` Photograph 20-30 physical strips, 5-6 photos each (angles/lighting/distance) into `tests/test_images/`
-- [ ] `A` Fill `data/local_dataset.json` from each strip's package info (name, generic, uses, dosage, side effects)
+- [ ] `A` Photograph 20-30 physical strips, 5-6 photos each (angles/lighting/distance) into `tests/test_images/` — **deferred to Day 4 alongside matcher work; no sessions available today**
+- [ ] `A` Fill `data/local_dataset.json` from each strip's package info (name, generic, uses, dosage, side effects) — **deferred with the photography; temporary fake entries unblock matcher development**
+- [ ] `A` `cv/preprocess.py`: grayscale → deskew → CLAHE → adaptive threshold → denoise — **pulled forward from Day 2**
+- [ ] `A` Synthetic test images in `tests/test_images/` (OpenCV-rendered text + noise) so schema and OCR wiring can be checked before real strip photos exist
+- [ ] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence — **pulled forward from Day 2**
 
 ### Day 2 — Wed Sept 23
-- [ ] `A` `cv/preprocess.py`: grayscale → deskew → CLAHE → adaptive threshold → denoise
-- [ ] `A` Visual before/after check on 8-10 sample photos; save images for the report
-- [ ] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence
+- [ ] `A` Visual before/after check on 8-10 sample images (synthetic first, real strips once they exist); save images for the report
+- [ ] `A` `data/matcher.py`: rapidfuzz match against the local dataset, threshold ~80 — against temporary fake entries until the real dataset lands
+- [ ] `B` (if free) Plan the tier-2/3 lookup interfaces so Day 4 unblocks cleanly
 
 ### Day 3 — Thu Sept 24
-- [ ] `A` Run OCR on the full test set with and without preprocessing; log the accuracy delta
-- [ ] `A` `data/matcher.py`: rapidfuzz match against the local dataset, threshold ~80%
-- [ ] `A+B` Wire preprocess → OCR → local match into `/upload`, real results for dataset strips
+- [ ] `A` Run OCR on the available test set (synthetic until photos land) with and without preprocessing; log the accuracy delta
+- [ ] `A+B` Wire preprocess → OCR → local match into `/upload`, returning results from the temporary dataset entries
+- [ ] `A` Fit the real strip photography session in here if it slips from Day 1
 
 ### Day 4 — Fri Sept 25
+- [ ] `A` Photograph the strips and fill the real `local_dataset.json` — **latest hard deadline; replaces the temporary entries**
+- [ ] `A` Retune preprocessing params (CLAHE clip, threshold block size, deskew) against the real photos — plastic glare ≠ synthetic noise
 - [ ] `B` `lookup/openfda_rxnorm.py`: RxNorm → OpenFDA label, ~3s timeout, never blocks the demo
 - [ ] `B` `lookup/web_search.py`: `duckduckgo_search` top-5 snippets + frequency vote
 - [ ] `B` Chain all three tiers with fallthrough logic and the shared response schema
