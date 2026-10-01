@@ -9,6 +9,7 @@ env/
 # Test + report artifacts
 *.log
 reports/
+tests/artifacts/
 
 # Model weights / notebooks (never commit — several hundred MB)
 *.pt

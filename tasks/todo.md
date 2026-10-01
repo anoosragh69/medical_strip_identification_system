@@ -26,7 +26,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [ ] `A` Photograph 20-30 physical strips, 5-6 photos each (angles/lighting/distance) into `tests/test_images/` — **deferred to Day 4 alongside matcher work; no sessions available today**
 - [ ] `A` Fill `data/local_dataset.json` from each strip's package info (name, generic, uses, dosage, side effects) — **deferred with the photography; temporary fake entries unblock matcher development**
 - [x] `A` `cv/preprocess.py`: grayscale → deskew → CLAHE → adaptive threshold → denoise — **pulled forward from Day 2; deskew verified to ±9° rotation**
-- [ ] `A` Synthetic test images in `tests/test_images/` (OpenCV-rendered text + noise) so schema and OCR wiring can be checked before real strip photos exist
+- [x] `A` Synthetic test images in `tests/test_images/` (OpenCV-rendered text + noise) so schema and OCR wiring can be checked before real strip photos exist — 12 images + `tests/labels.json`, before/after previews in `tests/artifacts/`
 - [ ] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence — **pulled forward from Day 2**
 
 ### Day 2 — Wed Sept 23
