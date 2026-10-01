@@ -93,6 +93,7 @@ class MatchResult:
     matched: bool
     name: str
     score: float            # 0-100 fuzzy score
+    record: dict | None     # the matched dataset entry, so the response builder needn't re-read the dataset
 def match_local(text: str, score_cutoff: float = 80.0) -> MatchResult | None: ...
 
 # lookup/openfda_rxnorm.py  (B)

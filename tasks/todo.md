@@ -30,8 +30,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [x] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence — **pulled forward from Day 2; full 12-image synthetic sweep run, adaptive dual-run added after raw-vs-pre comparison**
 
 ### Day 2 — Wed Sept 23
-- [ ] `A` Visual before/after check on 8-10 sample images (synthetic first, real strips once they exist); save images for the report
-- [ ] `A` `data/matcher.py`: rapidfuzz match against the local dataset, threshold ~80 — against temporary fake entries until the real dataset lands
+- [x] `A` Visual before/after check on 8-10 sample images — 12 synthetic previews in `tests/artifacts/`; real-strip pass happens with the Day 4 retune
+- [x] `A` `data/matcher.py`: rapidfuzz match against the local dataset, threshold ~80 — **12/12 synthetic images match correctly, all negative controls fall through; case-insensitive token matching added after a token-order miss**
+- [x] `A` Temporary fake `local_dataset.json` seeded with the 6 synthetic medicines — **real strip data replaces it on Day 4**
 - [ ] `B` (if free) Plan the tier-2/3 lookup interfaces so Day 4 unblocks cleanly
 
 ### Day 3 — Thu Sept 24
