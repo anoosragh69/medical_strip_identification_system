@@ -27,7 +27,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [ ] `A` Fill `data/local_dataset.json` from each strip's package info (name, generic, uses, dosage, side effects) — **deferred with the photography; temporary fake entries unblock matcher development**
 - [x] `A` `cv/preprocess.py`: grayscale → deskew → CLAHE → adaptive threshold → denoise — **pulled forward from Day 2; deskew verified to ±9° rotation**
 - [x] `A` Synthetic test images in `tests/test_images/` (OpenCV-rendered text + noise) so schema and OCR wiring can be checked before real strip photos exist — 12 images + `tests/labels.json`, before/after previews in `tests/artifacts/`
-- [ ] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence — **pulled forward from Day 2**
+- [x] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence — **pulled forward from Day 2; full 12-image synthetic sweep run, adaptive dual-run added after raw-vs-pre comparison**
 
 ### Day 2 — Wed Sept 23
 - [ ] `A` Visual before/after check on 8-10 sample images (synthetic first, real strips once they exist); save images for the report

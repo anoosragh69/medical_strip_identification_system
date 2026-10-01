@@ -81,9 +81,11 @@ def preprocess(image: np.ndarray) -> np.ndarray: ...
 @dataclass
 class OcrResult:
     text: str
-    confidence: float      # mean word confidence, 0.0-1.0
+    confidence: float      # mean block confidence, 0.0-1.0
     elapsed_ms: float
+    blocks: int
 def read_text(image: np.ndarray) -> OcrResult: ...
+def read_text_adaptive(image: np.ndarray) -> OcrResult: ...  # raw vs preprocessed, higher confidence wins — prefer this at call sites
 
 # data/matcher.py  (A)
 @dataclass
