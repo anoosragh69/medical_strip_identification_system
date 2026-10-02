@@ -45,13 +45,23 @@ downloads the EasyOCR model weights, so warm the model before a demo.
 
 ## Status
 
-The **local tier is wired end to end**: `/upload` decodes the photo, runs
-adaptive OCR (raw + preprocessed, higher confidence wins), fuzzy-matches
-against `data/local_dataset.json`, and returns a full result in under a
-second. Tiers 2 and 3 (`lookup/`) are still stubs — the server logs them as
-`pending` and falls through to a clean not-found. Dataset currently holds
-placeholder entries matching the synthetic test images in `tests/test_images/`;
-real strip photography lands on Day 4. See [`tasks/todo.md`](tasks/todo.md).
+**All three tiers are wired end to end.** `/upload` decodes the photo, runs
+adaptive OCR (raw + preprocessed, higher confidence wins), then:
+
+1. **Local tier** — fuzzy-matches against `data/local_dataset.json`; returns a
+   full result in under a second (primary demo path, works offline).
+2. **API tier** — RxNorm approximate-term → RxCUI → OpenFDA label; 3 s timeout
+   split across two calls so a dead network never stalls the demo.
+3. **Web tier** — DuckDuckGo top-5 snippets with keyword-frequency voting;
+   best-effort only, confidence capped at 50 %.
+
+The client shows a polished result card with tier-coloured badges
+(local = green, API = blue, web = amber), OCR text display, and a
+not-found guidance card with retake tips when no tier resolves.
+
+Dataset currently holds placeholder entries matching the synthetic test images
+in `tests/test_images/`; real strip photography is pending from Person A.
+See [`tasks/todo.md`](tasks/todo.md).
 
 ## Response schema
 

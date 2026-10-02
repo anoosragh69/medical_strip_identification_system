@@ -33,7 +33,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [x] `A` Visual before/after check on 8-10 sample images — 12 synthetic previews in `tests/artifacts/`; real-strip pass happens with the Day 4 retune
 - [x] `A` `data/matcher.py`: rapidfuzz match against the local dataset, threshold ~80 — **12/12 synthetic images match correctly, all negative controls fall through; case-insensitive token matching added after a token-order miss**
 - [x] `A` Temporary fake `local_dataset.json` seeded with the 6 synthetic medicines — **real strip data replaces it on Day 4**
-- [ ] `B` (if free) Plan the tier-2/3 lookup interfaces so Day 4 unblocks cleanly
+- [x] `B` (if free) Plan the tier-2/3 lookup interfaces so Day 4 unblocks cleanly — **interfaces defined in stubs; implemented on Day 11**
 
 ### Day 3 — Thu Sept 24
 - [x] `A` Run OCR on the available test set (synthetic until photos land) with and without preprocessing; log the accuracy delta — **12-image results: raw 12/12 @ 281ms, preprocessed-only 11/12 @ 272ms, adaptive 12/12 @ 543ms. Preprocessing's value showed on the degraded cases (confidence 0.30 → 0.74 on synth_09) rather than raw label hits, because synthetic text is easier than a real strip photo — re-measure on real strips after Day 4**
@@ -44,14 +44,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 ### Day 4 — Fri Sept 25
 - [ ] `A` Photograph the strips and fill the real `local_dataset.json` — **latest hard deadline; replaces the temporary entries**
 - [ ] `A` Retune preprocessing params (CLAHE clip, threshold block size, deskew) against the real photos — plastic glare ≠ synthetic noise
-- [ ] `B` `lookup/openfda_rxnorm.py`: RxNorm → OpenFDA label, ~3s timeout, never blocks the demo
-- [ ] `B` `lookup/web_search.py`: `duckduckgo_search` top-5 snippets + frequency vote
-- [ ] `B` Chain all three tiers with fallthrough logic and the shared response schema
+- [x] `B` `lookup/openfda_rxnorm.py`: RxNorm → OpenFDA label, ~3s timeout, never blocks the demo — **implemented Day 11: RxNorm approximate-term → RxCUI → OpenFDA label, timeout split 1.5s per API call, returns None on any failure**
+- [x] `B` `lookup/web_search.py`: `duckduckgo_search` top-5 snippets + frequency vote — **implemented Day 11: keyword-frequency vote over top-5 snippets, ≥2 mentions required, confidence capped at 0.5**
+- [x] `B` Chain all three tiers with fallthrough logic and the shared response schema — **server's _resolve_tiers() already handled fallthrough; now lookup modules return real results instead of NotImplementedError**
 
 ### Day 5 — Sat Sept 26
-- [ ] `B` Formatted console logging at every stage (received → preprocessed → OCR → tier → match → sent)
-- [ ] `B` Client result card: name, uses, dosage, side effects, resolving tier
-- [ ] `B` Clean "not found anywhere" path on server and client
+- [x] `B` Formatted console logging at every stage (received → preprocessed → OCR → tier → match → sent) — **already in place since Day 3 wiring; logging_utils.py with stage_timer context manager**
+- [x] `B` Client result card: name, uses, dosage, side effects, resolving tier — **polished Day 11: tier-colored badges (local=green, api=blue, web=amber), OCR text display, slideUp animation**
+- [x] `B` Clean "not found anywhere" path on server and client — **polished Day 11: dedicated not-found guidance card with retake tips and retry button**
 - [ ] `A+B` Full end-to-end run on the same wifi, no other network assumptions
 - [ ] `A+B` **Checkpoint: core pipeline works end-to-end tonight**
 
@@ -66,7 +66,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [ ] `A+B` Fix what the numbers expose; local-dataset path must be near 100%
 
 ### Day 8 — Tue Sept 29
-- [ ] `B` Edge cases: blurry, extreme angle, torn strip, unknown medicine → graceful failure
+- [x] `B` Edge cases: blurry, extreme angle, torn strip, unknown medicine → graceful failure — **Day 11: client-side validation (file type/size), not-found card with retake guidance, server returns clean JSON on all error paths**
 - [ ] `A` Tune the fuzzy-match threshold from Day 7 error patterns
 
 ### Day 9 — Wed Sept 30
@@ -75,11 +75,15 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 
 ### Day 10 — Thu Oct 1
 - [ ] `A` Continue stretch goal, or `B` polish UI / response formatting / log readability
-- [ ] `B` Start the report: architecture + dataset methodology
+- [~] `B` Start the report: architecture + dataset methodology — **started Day 11**
 
 ### Day 11 — Fri Oct 2
 - [ ] `A` Keep the detector only if it measurably beats the plain preprocessed-crop path
 - [ ] `A` Re-run `tests/eval.py`, confirm nothing regressed
+- [x] `B` Implement openfda_rxnorm.py and web_search.py (replaced NotImplementedError stubs)
+- [x] `B` Polish client: not-found card, tier badges, OCR display, retry flow, animations
+- [x] `B` Response formatting: tier-specific confidence, truncated API fields to 500 chars
+- [~] `B` Report draft started
 
 ### Day 12 — Sat Oct 3
 - [ ] `B` Finalize report: results, numbers, limitations, before/after screenshots
