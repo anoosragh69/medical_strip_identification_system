@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f1720" />
+  <meta name="description" content="Photograph a medicine strip and instantly identify the drug name, uses, dosage, and side effects using OCR and multi-tier lookup." />
   <title>Medicine Strip ID</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -32,6 +33,22 @@
 
     <section id="status" class="status" role="status" aria-live="polite" hidden></section>
 
+    <!-- Not-found guidance card — shown when no tier resolves -->
+    <section id="not-found" class="not-found-card" hidden>
+      <div class="not-found-icon" aria-hidden="true">&#128269;</div>
+      <h2>Couldn't identify this strip</h2>
+      <p>Try the following for a better result:</p>
+      <ul>
+        <li>Hold the phone steady and close to the strip</li>
+        <li>Ensure good, even lighting — avoid shadows and glare</li>
+        <li>Focus on the brand name / text area of the strip</li>
+        <li>Avoid extreme angles — shoot from straight above</li>
+      </ul>
+      <button id="retry-btn" class="btn primary retry-btn" type="button">
+        <span class="btn-icon" aria-hidden="true">&#128247;</span> Try again
+      </button>
+    </section>
+
     <section id="result" class="result" hidden>
       <div class="result-head">
         <h2 id="result-name">—</h2>
@@ -46,6 +63,10 @@
         <dt>Dosage</dt><dd id="result-dosage">—</dd>
         <dt>Side effects</dt><dd id="result-side-effects">—</dd>
       </dl>
+      <div id="result-ocr" class="ocr-text" hidden>
+        <dt>OCR text read</dt>
+        <dd id="result-ocr-text"></dd>
+      </div>
       <p class="disclaimer">Informational only — not a substitute for a pharmacist or doctor.</p>
     </section>
 

@@ -63,9 +63,14 @@ main {
   font-weight: 600;
   cursor: pointer;
   user-select: none;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
 }
 
 .btn:active { transform: translateY(1px); }
+
+.btn:hover {
+  box-shadow: 0 2px 12px rgba(58, 166, 255, 0.15);
+}
 
 .btn.primary {
   background: var(--accent);
@@ -92,11 +97,78 @@ main {
   border-radius: var(--radius);
   background: var(--panel);
   border: 1px solid #2a3a4b;
+  animation: fadeIn 0.2s ease;
 }
 
-.status.busy { color: var(--muted); }
+.status.busy {
+  color: var(--muted);
+  position: relative;
+  overflow: hidden;
+}
+
+.status.busy::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 30%;
+  height: 2px;
+  background: var(--accent);
+  animation: progress-sweep 1.5s ease-in-out infinite;
+}
+
 .status.warn { color: var(--warn); border-color: #4a3f22; }
 .status.error { color: var(--error); border-color: #4d2b2a; }
+
+/* ── Not-found guidance card ── */
+
+.not-found-card {
+  margin-top: 16px;
+  padding: 24px 20px;
+  background: var(--panel);
+  border: 1px solid #4a3f22;
+  border-radius: var(--radius);
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.not-found-icon {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.not-found-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: var(--warn);
+}
+
+.not-found-card p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.not-found-card ul {
+  text-align: left;
+  margin: 0 auto 18px;
+  padding-left: 22px;
+  max-width: 340px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.not-found-card ul li::marker {
+  color: var(--warn);
+}
+
+.retry-btn {
+  margin-top: 4px;
+}
+
+/* ── Result card ── */
 
 .result {
   margin-top: 16px;
@@ -104,6 +176,7 @@ main {
   border: 1px solid #2a3a4b;
   border-radius: var(--radius);
   overflow: hidden;
+  animation: slideUp 0.3s ease;
 }
 
 .result-head {
@@ -132,6 +205,10 @@ main {
   color: var(--ok);
 }
 
+.tier.tier-local { color: var(--ok); }
+.tier.tier-api { color: var(--accent); }
+.tier.tier-web { color: var(--warn); }
+
 .confidence { color: var(--muted); }
 
 dl {
@@ -149,6 +226,22 @@ dt {
 
 dd {
   margin: 3px 0 0;
+}
+
+.ocr-text {
+  padding: 8px 18px 12px;
+  border-top: 1px dashed #2a3a4b;
+}
+
+.ocr-text dt {
+  margin-top: 4px;
+}
+
+.ocr-text dd {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+  word-break: break-word;
 }
 
 .disclaimer {
@@ -177,4 +270,21 @@ dd {
   overflow-x: auto;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+/* ── Animations ── */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progress-sweep {
+  0% { left: -30%; }
+  100% { left: 100%; }
 }
