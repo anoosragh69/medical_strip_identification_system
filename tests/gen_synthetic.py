@@ -3,8 +3,8 @@
 Renders simple labelled 'strip' photos (text on a lit metallic-ish backdrop)
 with realistic corruptions - rotation, blur, noise, glare, uneven lighting -
 so preprocess.py and ocr.py can be exercised before the real photographs land
-on Day 4. Also writes tests/labels.json mapping each image to its expected
-medicine name, the same file tests/eval.py will consume later.
+on Day 4. Owns tests/synthetic_labels.json (real strip photos get their own
+tests/labels.json via tests/manage_strips.py; tests/labels.py merges both).
 
 Usage:
     python -m tests.gen_synthetic            # regenerate the default set
@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 
 TEST_IMAGES = Path(__file__).resolve().parent / "test_images"
-LABELS = Path(__file__).resolve().parent / "labels.json"
+LABELS = Path(__file__).resolve().parent / "synthetic_labels.json"
 ARTIFACTS = Path(__file__).resolve().parent / "artifacts"
 
 # Name + generic line pairs. These are the same medicines the temporary

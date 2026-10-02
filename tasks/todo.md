@@ -26,7 +26,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [ ] `A` Photograph 20-30 physical strips, 5-6 photos each (angles/lighting/distance) into `tests/test_images/` — **deferred to Day 4 alongside matcher work; no sessions available today**
 - [ ] `A` Fill `data/local_dataset.json` from each strip's package info (name, generic, uses, dosage, side effects) — **deferred with the photography; temporary fake entries unblock matcher development**
 - [x] `A` `cv/preprocess.py`: grayscale → deskew → CLAHE → adaptive threshold → denoise — **pulled forward from Day 2; deskew verified to ±9° rotation**
-- [x] `A` Synthetic test images in `tests/test_images/` (OpenCV-rendered text + noise) so schema and OCR wiring can be checked before real strip photos exist — 12 images + `tests/labels.json`, before/after previews in `tests/artifacts/`
+- [x] `A` Synthetic test images in `tests/test_images/` (OpenCV-rendered text + noise) so schema and OCR wiring can be checked before real strip photos exist — 12 images + `tests/synthetic_labels.json`, before/after previews in `tests/artifacts/`
 - [x] `A` `cv/ocr.py`: EasyOCR wrapper returning concatenated text + average confidence — **pulled forward from Day 2; full 12-image synthetic sweep run, adaptive dual-run added after raw-vs-pre comparison**
 
 ### Day 2 — Wed Sept 23
@@ -42,7 +42,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [ ] `A` Fit the real strip photography session in here if it slips from Day 1 — **still deferred to Day 4**
 
 ### Day 4 — Fri Sept 25
-- [ ] `A` Photograph the strips and fill the real `local_dataset.json` — **latest hard deadline; replaces the temporary entries**
+- [ ] `A` Photograph the strips and fill the real `local_dataset.json` — **latest hard deadline; replaces the temporary entries.** Layout: `tests/test_images/<slug>/front-NN.jpg` (eval-eligible: `front-01` clean & straight = demo photo, `02` angle, `03` glare, `04` distance) + `back-NN.jpg` (dataset transcription only, never scored). `python -m tests.manage_strips scaffold` creates the folders from the dataset, `label` rebuilds `labels.json` from them
 - [ ] `A` Retune preprocessing params (CLAHE clip, threshold block size, deskew) against the real photos — plastic glare ≠ synthetic noise
 - [x] `B` `lookup/openfda_rxnorm.py`: RxNorm → OpenFDA label, ~3s timeout, never blocks the demo — **implemented Day 11: RxNorm approximate-term → RxCUI → OpenFDA label, timeout split 1.5s per API call, returns None on any failure**
 - [x] `B` `lookup/web_search.py`: `duckduckgo_search` top-5 snippets + frequency vote — **implemented Day 11: keyword-frequency vote over top-5 snippets, ≥2 mentions required, confidence capped at 0.5**

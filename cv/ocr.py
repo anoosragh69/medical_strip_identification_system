@@ -76,7 +76,7 @@ def read_text(image: np.ndarray) -> OcrResult:
 def read_text_adaptive(image: np.ndarray) -> OcrResult:
     """Run OCR on both the raw and preprocessed variants, keep the higher-confidence read.
 
-    Measured on the synthetic set (tests/labels.json): preprocessing rescues
+    Measured on the synthetic set (tests/synthetic_labels.json): preprocessing rescues
     degraded shots (raw 0.30 -> pre 0.74 on the bad-glare blur case) but on
     clean shots binarisation can *lower* confidence. Dual-running costs one
     extra ~300ms on CPU and wins on both ends of the distribution, so this is
