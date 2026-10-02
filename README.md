@@ -45,9 +45,13 @@ downloads the EasyOCR model weights, so warm the model before a demo.
 
 ## Status
 
-Skeleton is in place: `/upload` accepts an image and returns the response
-schema, and the client renders it. The pipeline stages are stubs raising
-`NotImplementedError` and are being filled in per [`tasks/todo.md`](tasks/todo.md).
+The **local tier is wired end to end**: `/upload` decodes the photo, runs
+adaptive OCR (raw + preprocessed, higher confidence wins), fuzzy-matches
+against `data/local_dataset.json`, and returns a full result in under a
+second. Tiers 2 and 3 (`lookup/`) are still stubs — the server logs them as
+`pending` and falls through to a clean not-found. Dataset currently holds
+placeholder entries matching the synthetic test images in `tests/test_images/`;
+real strip photography lands on Day 4. See [`tasks/todo.md`](tasks/todo.md).
 
 ## Response schema
 

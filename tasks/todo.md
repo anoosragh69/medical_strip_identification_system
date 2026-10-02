@@ -36,9 +36,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [ ] `B` (if free) Plan the tier-2/3 lookup interfaces so Day 4 unblocks cleanly
 
 ### Day 3 — Thu Sept 24
-- [ ] `A` Run OCR on the available test set (synthetic until photos land) with and without preprocessing; log the accuracy delta
-- [ ] `A+B` Wire preprocess → OCR → local match into `/upload`, returning results from the temporary dataset entries
-- [ ] `A` Fit the real strip photography session in here if it slips from Day 1
+- [x] `A` Run OCR on the available test set (synthetic until photos land) with and without preprocessing; log the accuracy delta — **12-image results: raw 12/12 @ 281ms, preprocessed-only 11/12 @ 272ms, adaptive 12/12 @ 543ms. Preprocessing's value showed on the degraded cases (confidence 0.30 → 0.74 on synth_09) rather than raw label hits, because synthetic text is easier than a real strip photo — re-measure on real strips after Day 4**
+- [x] `A+B` Wire preprocess → OCR → local match into `/upload`, returning results from the temporary dataset entries — **verified over HTTP: stage logs with ms timings, <1s per request, error paths return 400, unknown medicine falls through to a clean not-found**
+- [x] `A` Fix the WRatio false positive found during smoke testing (unknown "TYLENOL 500" scored 85.5 against "AZEE 500") — **token-coverage guard added; 12/12 + all negatives clean**
+- [ ] `A` Fit the real strip photography session in here if it slips from Day 1 — **still deferred to Day 4**
 
 ### Day 4 — Fri Sept 25
 - [ ] `A` Photograph the strips and fill the real `local_dataset.json` — **latest hard deadline; replaces the temporary entries**
