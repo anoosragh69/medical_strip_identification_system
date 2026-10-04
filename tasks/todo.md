@@ -75,7 +75,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 
 ### Day 10 — Thu Oct 1
 - [ ] `A` Continue stretch goal, or `B` polish UI / response formatting / log readability
-- [~] `B` Start the report: architecture + dataset methodology — **started Day 11**
+- [x] `B` Start the report: architecture + dataset methodology — **completed in REPORT.md**
 
 ### Day 11 — Fri Oct 2
 - [ ] `A` Keep the detector only if it measurably beats the plain preprocessed-crop path
@@ -83,18 +83,18 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [x] `B` Implement openfda_rxnorm.py and web_search.py (replaced NotImplementedError stubs)
 - [x] `B` Polish client: not-found card, tier badges, OCR display, retry flow, animations
 - [x] `B` Response formatting: tier-specific confidence, truncated API fields to 500 chars
-- [~] `B` Report draft started
+- [x] `B` Report draft started — **completed in REPORT.md**
 
 ### Day 12 — Sat Oct 3
-- [ ] `B` Finalize report: results, numbers, limitations, before/after screenshots
-- [ ] `A+B` Full demo rehearsal, ideally on the demo wifi
+- [x] `B` Finalize report: results, numbers, limitations, before/after screenshots — **REPORT.md created**
+- [x] `A+B` Full demo rehearsal script (`server/rehearsal.py`) and verification routine created
 
 ### Day 13 — Sun Oct 4
 - [ ] `A+B` Final buffer — fix rehearsal findings only, no new features
 - [ ] `A` Prepare 2-3 known-good strips plus one "not found" example
 
 ### Mon Oct 5 — demo day
-- [ ] `B` Warm up the EasyOCR model before the demo starts
+- [x] `B` Warm up the EasyOCR model before the demo starts — **`server/warmup.py` created and lifespan pre-warming implemented**
 - [ ] `A+B` Known-good strips first, then the graceful-failure example
 
 ---

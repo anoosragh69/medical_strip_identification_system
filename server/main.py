@@ -7,8 +7,10 @@ Run from the repository root:
 then open http://<host-ip>:8000/ on a phone on the same network.
 
 The pipeline itself is owned across tasks/split.md: A owns cv/ and data/,
-B owns this file and lookup/. Until the stages land, /upload answers with the
-response schema marked source_tier="none" so the client contract is testable.
+B owns this file and lookup/. All three tiers are now implemented:
+  - local (rapidfuzz vs curated dataset) — always-on, offline, <1s
+  - api   (RxNorm → OpenFDA)             — 3s timeout, degrades to None
+  - web   (DuckDuckGo frequency vote)     — best-effort, never load-bearing
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from cv.ocr import OcrResult, read_text_adaptive, warm_up
@@ -32,6 +35,7 @@ from server.logging_utils import log_stage, new_logger
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CLIENT_DIR = REPO_ROOT / "client"
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -40,8 +44,17 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Medicine Strip Identification System", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Medicine Strip Identification System", version="0.3.0", lifespan=lifespan)
 log = new_logger("upload")
+
+# Allow cross-origin requests from phones on the same wifi — during the demo
+# the phone and server may have different IPs / ports.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["POST", "GET"],
+    allow_headers=["*"],
+)
 
 
 def build_response(
@@ -80,6 +93,7 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
     Each tier returns the shared schema or falls through; exceptions in any tier
     degrade to the next one rather than failing the request.
     """
+    pipeline_start = time.perf_counter()
     started = time.perf_counter()
     payload = await file.read()
     log_stage(
@@ -95,7 +109,17 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
     if not payload:
         return JSONResponse(status_code=400, content=build_response(matched=False, source_tier="none", note="empty file"))
     if len(payload) > MAX_UPLOAD_BYTES:
-        return JSONResponse(status_code=413, content=build_response(matched=False, source_tier="none", note="file too large"))
+        return JSONResponse(status_code=413, content=build_response(matched=False, source_tier="none", note="file too large (max 8 MB)"))
+
+    # Content-type sanity check — phones sometimes send odd MIME types, so
+    # we only reject obviously wrong ones (PDFs, text files, etc.)
+    ct = (file.content_type or "").lower()
+    if ct and not ct.startswith("image/"):
+        log_stage(log, "validate", "reject", content_type=ct)
+        return JSONResponse(
+            status_code=400,
+            content=build_response(matched=False, source_tier="none", note=f"expected an image, got {ct}"),
+        )
 
     started = time.perf_counter()
     try:
@@ -113,6 +137,9 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
         return JSONResponse(content=build_response(matched=False, source_tier="none", note="no text found in the photo"))
 
     result = _resolve_tiers(ocr)
+
+    total_ms = (time.perf_counter() - pipeline_start) * 1000
+    log_stage(log, "pipeline_done", result.get("source_tier", "none"), total_ms, matched=result.get("matched"))
     return JSONResponse(content=result)
 
 
