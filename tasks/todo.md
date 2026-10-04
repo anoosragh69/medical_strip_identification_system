@@ -52,8 +52,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `A`/`B` owner ·
 - [x] `B` Formatted console logging at every stage (received → preprocessed → OCR → tier → match → sent) — **already in place since Day 3 wiring; logging_utils.py with stage_timer context manager**
 - [x] `B` Client result card: name, uses, dosage, side effects, resolving tier — **polished Day 11: tier-colored badges (local=green, api=blue, web=amber), OCR text display, slideUp animation**
 - [x] `B` Clean "not found anywhere" path on server and client — **polished Day 11: dedicated not-found guidance card with retake tips and retry button**
-- [ ] `A+B` Full end-to-end run on the same wifi, no other network assumptions
-- [ ] `A+B` **Checkpoint: core pipeline works end-to-end tonight**
+- [x] `A+B` Full end-to-end run on the same wifi, no other network assumptions — **verified Oct 4: phone opened `http://172.16.171.218:8127/`, photo of LEVIPIL 500 returned the local-tier card; no other network used**
+- [x] `A+B` **Checkpoint: core pipeline works end-to-end tonight** — **verified Oct 4 (phone, same wifi) for the local path; unknown-strip chain local→api→web exercised in-process via `_resolve_tiers` the same day**
 
 ### Day 6 — Sun Sept 27 (buffer)
 - [ ] `A+B` Catch up on anything slipped from Days 1-5
