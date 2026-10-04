@@ -67,11 +67,12 @@ the process, not just the code.
    for every RxCUI; the old 1.5 s split timed out good calls and the
    half-split left a 9 s worst case.)
 5. **`lookup/web_search.py`** — `ddgs` top-5 snippets (renamed from
-   `duckduckgo_search` on 2026-10-04; old import kept as fallback) with a
-   keyword-frequency vote; all-stopword bigrams excluded, winners must
-   fuzzy-match the OCR text (partial_ratio ≥ 85) or they are discarded,
-   pinned fast backends first with one auto-chain retry; degradable,
-   never load-bearing.
+   `duckduckgo_search` on 2026-10-04; old import kept as fallback); the
+   vote runs only among OCR-grounded candidates (partial_ratio ≥ 85 vs a
+   4+ char query token) with exact query tokens preferred over raw counts,
+   all-stopword bigrams excluded; pinned fast backends first, auto-chain
+   retry skipped when the first attempt was slow (dead network); ddgs
+   loggers silenced to WARNING; degradable, never load-bearing.
 6. **Report + rehearsal (Days 10-13)** — architecture write-up, demo script,
    wifi rehearsal, pre-warming EasyOCR.
 

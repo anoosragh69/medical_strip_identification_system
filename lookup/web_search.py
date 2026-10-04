@@ -24,6 +24,11 @@ __all__ = ["search"]
 
 log = logging.getLogger(__name__)
 
+# ddgs logs per-engine errors at INFO and drags third-party HTTP/DNS clients
+# along; keep them at WARNING so the server log stays readable.
+for _lib in ("ddgs", "primp", "hickory", "h2", "cookie_store"):
+    logging.getLogger(_lib).setLevel(logging.WARNING)
+
 DEFAULT_TOP_K = 5
 
 # Common filler words that are never drug names
@@ -59,9 +64,10 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
     """Return the shared response schema for a voted web result, else None.
 
     Uses ``ddgs`` (the renamed ``duckduckgo_search`` package; the old import
-    is kept as a fallback) to fetch snippets, then votes on the most
-    frequently mentioned drug name across them. Returns None on any failure
-    so the endpoint falls through to the clean not-found response.
+    is kept as a fallback) to fetch snippets, then votes among candidate drug
+    names that are grounded in the OCR text (exact token first, then votes).
+    Returns None on any failure so the endpoint falls through to the clean
+    not-found response.
     """
     if not query or not query.strip():
         return None
@@ -79,10 +85,15 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
 
     # First pass pins the fast, consistently-responsive engines; if they come
     # back empty (they rate-limit intermittently - ddgs raises "No results
-    # found."), retry once against the full auto backend chain.
+    # found."), retry once against the full auto backend chain. A slow first
+    # pass means the network itself is down, so skip the second attempt
+    # instead of stacking another 8+ s of timeouts.
     results: list[dict] = []
+    started = time.monotonic()
     for attempt, backend in enumerate(("mojeek,yahoo,startpage", "auto")):
         if attempt:
+            if time.monotonic() - started >= 5.0:
+                break
             time.sleep(0.5)
         try:
             with DDGS(timeout=4) as ddgs:
@@ -112,24 +123,31 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
     if not vote_counter:
         return None
 
-    # The winner is the most-mentioned plausible drug name
-    winner, count = vote_counter.most_common(1)[0]
+    # Ground candidates in the OCR text first, then vote among them: engines
+    # return generic drug pages even for noisy queries, and their condition or
+    # platform words ("Constipation", "DailyMed") can out-vote the real
+    # product name. Fuzzy match so minor OCR typos still pass.
+    query_tokens = [tok for tok in re.findall(r"[a-z]+", query.lower()) if len(tok) >= 4]
 
-    # Require at least 2 mentions across snippets for any confidence
-    if count < 2:
-        log.debug("No strong consensus from web search for %r (best: %s x%d)", query, winner, count)
-        return None
+    def grounded(name: str) -> bool:
+        name_l = name.lower()
+        return any(fuzz.partial_ratio(tok, name_l) >= 85 for tok in query_tokens)
 
-    # Ground the winner in the OCR text: search engines return generic drug
-    # pages even for gibberish queries, and their brand names (e.g. "DailyMed")
-    # would otherwise win the vote. Fuzzy match so minor OCR typos pass.
-    winner_l = winner.lower()
-    if not any(
-        len(tok) >= 4 and fuzz.partial_ratio(tok, winner_l) >= 85
-        for tok in re.findall(r"[a-z]+", query.lower())
-    ):
-        log.debug("Web winner %r not grounded in query %r — discarding", winner, query)
+    ranked = [
+        (count, name)
+        for name, count in vote_counter.items()
+        if grounded(name) and count >= 2  # >=2 mentions = real consensus
+    ]
+    if not ranked:
+        log.debug("No grounded web candidate for %r (top: %s)", query, vote_counter.most_common(3))
         return None
+    # Exact query tokens win first (the strip printed that name), then vote
+    # count; ties go to shorter names
+    ranked.sort(
+        key=lambda item: (item[1].lower() in query_tokens, item[0], -len(item[1])),
+        reverse=True,
+    )
+    count, winner = ranked[0]
 
     # Try to extract uses/dosage from the snippets mentioning the winner
     uses_snippets = []
