@@ -59,13 +59,18 @@ the process, not just the code.
 3. **`client/`** — camera and gallery capture, upload, result card (name,
    generic, uses, dosage, side effects, resolving tier, confidence), and the
    clean not-found state.
-4. **`lookup/openfda_rxnorm.py`** — RxNorm approximate match → canonical name
-   (properties fallback for unnamed candidates) → relevance gate against the
-   OCR text (partial_ratio ≥ 55) → OpenFDA label by generic **or** brand
-   name; timeout/3 per call (3 sequential calls, true ~6 s ceiling) so the
-   demo never hangs. (Revised 2026-10-04: the by-RxCUI OpenFDA query 404s
-   for every RxCUI; the old 1.5 s split timed out good calls and the
-   half-split left a 9 s worst case.)
+4. **`lookup/openfda_rxnorm.py`** — RxNorm approximate match → canonical
+   name (properties fallback for unnamed candidates; skipped when a named
+   candidate already failed the gate and a focus retry follows) → relevance
+   gate against the OCR text (partial_ratio ≥ 55) → OpenFDA label by
+   generic **or** brand name; one wall-clock deadline (8 s) across all
+   attempts and calls, per-call caps, connect-bounded timeouts so the
+   demo never hangs. When the full OCR string yields nothing, retry from
+   the focus token (longest ≥6-char alpha run — skips gibberish tails
+   that derail approximateTerm). (Revised 2026-10-04: the by-RxCUI
+   OpenFDA query 404s for every RxCUI; the old fixed 1.5 s splits timed
+   out good calls; the Dulcoflex phone photo's noisy OCR needed the focus
+   retry — now resolves 5/5 in ~5 s via Dulcolax/bisacodyl.)
 5. **`lookup/web_search.py`** — `ddgs` top-5 snippets (renamed from
    `duckduckgo_search` on 2026-10-04; old import kept as fallback); the
    vote runs only among OCR-grounded candidates (partial_ratio ≥ 85 vs a
@@ -106,8 +111,8 @@ class MatchResult:
     record: dict | None     # the matched dataset entry, so the response builder needn't re-read the dataset
 def match_local(text: str, score_cutoff: float = 80.0) -> MatchResult | None: ...
 
-# lookup/openfda_rxnorm.py  (B)  — default timeout revised 3.0 → 6.0 on 2026-10-04
-def lookup(query: str, timeout: float = 6.0) -> dict | None: ...
+# lookup/openfda_rxnorm.py  (B)  — timeout revised 3.0 → 6.0 → 8.0 (whole-tier deadline) 2026-10-04
+def lookup(query: str, timeout: float = 8.0) -> dict | None: ...
 
 # lookup/web_search.py  (B)
 def search(query: str, top_k: int = 5) -> dict | None: ...

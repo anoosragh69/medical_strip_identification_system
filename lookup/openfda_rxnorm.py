@@ -19,6 +19,11 @@ Flow:
        OR openfda.brand_name:"<word>" → label fields, mapped into the
        shared response schema. The OR covers brand-word canonical names
        ("Dulcolax" hits only via brand_name).
+    5. If the full OCR string yields nothing (garbage tails derail
+       approximateTerm), retry from scratch with the focus token — the
+       longest ≥6-char alpha run, which is the printed drug name on real
+       strips ("Dulcoflex" out of "…Dulcoflex\" Hisaud| TabksiP Sm  Ea
+       Eaten So7d…"). All calls share one wall-clock deadline.
 
 Notes from 2026-10-04 probing: the by-rxcui query
 (openfda.rxcui:"<id>") returns HTTP 404 for every RxCUI we tried, so
@@ -30,6 +35,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import Any
 
 import requests
@@ -41,27 +47,60 @@ log = logging.getLogger(__name__)
 
 RXNORM_BASE = "https://rxnav.nlm.nih.gov/REST"
 OPENFDA_BASE = "https://api.fda.gov/drug/label.json"
-# 2 s per call, 3 sequential calls, 6 s ceiling. Measured on the demo
-# network: RxNorm calls 1.1-1.9 s, OpenFDA 1.0-1.3 s; the old 1.5 s split
-# timed out good calls, and dividing by 2 left a 9 s worst case.
-DEFAULT_TIMEOUT = 6.0
+# Wall-clock budget for the whole tier (all attempts, all calls).
+# Measured latency (2026-10-04, mildly throttled network): RxNorm 1.8-2.3 s,
+# OpenFDA 1.1-2.5 s — the focus-retry path (approx → approx → label) needs
+# headroom past 6 s; a dead network is cut off at this deadline.
+DEFAULT_TIMEOUT = 8.0
 # Gap between real matches (≥ 66.7) and junk (≤ 44.4) on measured pairs.
 _RELEVANCE_CUTOFF = 55.0
+# Smallest budget worth starting a request with.
+_MIN_CALL = 0.5
 
 
-def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
+def _left(deadline: float, cap: float) -> float:
+    """Seconds left for the next request: per-call cap, bounded by deadline."""
+    return min(cap, deadline - time.monotonic())
+
+
+def _req_timeout(deadline: float, cap: float) -> tuple[float, float]:
+    """requests timeout (connect, read) honoring the tier deadline.
+
+    Connect is capped at 1 s so a slow connect can't push a call that starts
+    just before the deadline to 2× the remaining budget.
+    """
+    left = _left(deadline, cap)
+    return (min(1.0, left), left)
+
+
+def _focus_token(query: str) -> str | None:
+    """Longest ≥6-char alpha run — the printed drug name on real strips."""
+    runs = re.findall(r"[A-Za-z]{6,}", query)
+    return max(runs, key=len) if runs else None
+
+
+def _canonical_name(
+    query: str, deadline: float, cap: float, *, skip_properties_if_named: bool = False
+) -> tuple[str, str] | None:
     """Best (rxcui, RxNorm name) for the query, or None.
 
     Candidates come back in score order from /approximateTerm; some carry no
     name (seen on real queries like "Paracetamol 650"), so fall back to the
     preferred name from /rxcui/{id}/properties.json for the top RxCUI. Every
     name must clear the relevance gate against the OCR query.
+
+    skip_properties_if_named: when a focus-token attempt follows anyway and
+    approx already returned named candidates (that merely failed the gate on
+    the noisy full text), skip the ~1.5 s properties call — the focus retry
+    re-approximates with cleaner text instead. All-unnamed candidate lists
+    still get the fallback: that is the Paracetamol-650 case where properties
+    is the only source of a name.
     """
     try:
         resp = requests.get(
             f"{RXNORM_BASE}/approximateTerm.json",
             params={"term": query, "maxEntries": 5},
-            timeout=timeout,
+            timeout=_req_timeout(deadline, cap),
         )
         resp.raise_for_status()
         candidates = resp.json().get("approximateGroup", {}).get("candidate", []) or []
@@ -73,23 +112,27 @@ def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
         return fuzz.partial_ratio(name.lower(), query.lower()) >= _RELEVANCE_CUTOFF
 
     first_rxcui = None
+    named_seen = False
     for candidate in candidates:
         rxcui = str(candidate.get("rxcui") or "").strip()
         name = str(candidate.get("name") or "").strip()
         if rxcui and not first_rxcui:
             first_rxcui = rxcui
         if rxcui and name:
+            named_seen = True
             if relevant(name):
                 return rxcui, name
             log.debug("RxNorm candidate %r not relevant to %r — scanning on", name, query)
 
-    if not first_rxcui:
+    if not first_rxcui or _left(deadline, cap) < _MIN_CALL:
+        return None
+    if skip_properties_if_named and named_seen:
         return None
 
     try:
         resp = requests.get(
             f"{RXNORM_BASE}/rxcui/{first_rxcui}/properties.json",
-            timeout=timeout,
+            timeout=_req_timeout(deadline, cap),
         )
         resp.raise_for_status()
         name = str(resp.json().get("properties", {}).get("name") or "").strip()
@@ -115,14 +158,16 @@ def _join(items: list[str] | None, sep: str = "; ") -> str:
     return sep.join(s.strip() for s in items if s and s.strip())
 
 
-def _openfda_label(drug_word: str, timeout: float) -> dict[str, Any] | None:
+def _openfda_label(drug_word: str, deadline: float, cap: float) -> dict[str, Any] | None:
     """Fetch the OpenFDA label by generic OR brand name and extract fields."""
     params = {
         "search": f'openfda.generic_name:"{drug_word}" OR openfda.brand_name:"{drug_word}"',
         "limit": 1,
     }
+    if _left(deadline, cap) < _MIN_CALL:
+        return None
     try:
-        resp = requests.get(OPENFDA_BASE, params=params, timeout=timeout)
+        resp = requests.get(OPENFDA_BASE, params=params, timeout=_req_timeout(deadline, cap))
         if resp.status_code == 404:
             # No label for this word — expected for OCR garbage and for
             # ingredients openFDA does not index.
@@ -167,30 +212,42 @@ def _openfda_label(drug_word: str, timeout: float) -> dict[str, Any] | None:
 
 
 def lookup(query: str, timeout: float = DEFAULT_TIMEOUT) -> dict | None:
-    """Resolve `query` through RxNorm approximate match -> OpenFDA by generic name.
+    """Resolve `query` through RxNorm approximate match -> OpenFDA label.
 
-    Returns the shared response schema dict on a successful match, or None so
-    the endpoint falls through to the web-search tier. Timeouts and network
-    errors return None — the demo must never hang on a dead network.
+    Tries the full OCR text first, then the focus token (longest ≥6-char
+    alpha run) when garbage tails derail approximateTerm. Returns the shared
+    response schema dict on a successful match, or None so the endpoint falls
+    through to the web-search tier. All calls share one wall-clock deadline —
+    the demo must never hang on a dead network.
     """
     if not query or not query.strip():
         return None
 
-    # Third of the timeout budget for each of the three sequential calls
-    per_call = timeout / 3
+    deadline = time.monotonic() + timeout
+    cap = timeout / 2  # per-call cap; the deadline does the real limiting
+    attempts = list(dict.fromkeys(a for a in (query, _focus_token(query)) if a))
+    tried_words: set[str] = set()
 
-    match = _canonical_name(query, per_call)
-    if not match:
-        log.debug("No RxNorm candidate for %r", query)
-        return None
-    canonical = match[1]
+    for i, attempt_query in enumerate(attempts):
+        if _left(deadline, cap) < _MIN_CALL:
+            break
+        match = _canonical_name(
+            attempt_query, deadline, cap,
+            skip_properties_if_named=(i < len(attempts) - 1),
+        )
+        if not match:
+            log.debug("No RxNorm candidate for %r", attempt_query)
+            continue
+        canonical = match[1]
 
-    word = _drug_word(canonical)
-    if not word:
-        log.debug("No searchable word in RxNorm name %r for %r", canonical, query)
-        return None
+        word = _drug_word(canonical)
+        if not word or word.lower() in tried_words:
+            log.debug("No new searchable word in RxNorm name %r for %r", canonical, attempt_query)
+            continue
+        tried_words.add(word.lower())
 
-    result = _openfda_label(word, per_call)
-    if result:
-        log.info("OpenFDA match for %r (rxnorm=%r): %s", query, canonical, result.get("name"))
-    return result
+        result = _openfda_label(word, deadline, cap)
+        if result:
+            log.info("OpenFDA match for %r (rxnorm=%r): %s", query, canonical, result.get("name"))
+            return result
+    return None
