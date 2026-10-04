@@ -23,6 +23,7 @@ colab/
 Thumbs.db
 .idea/
 .vscode/
+graphify-out/
 
 # Secrets
 .env
