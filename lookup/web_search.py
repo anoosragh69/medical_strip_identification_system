@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from collections import Counter
 
 __all__ = ["search"]
@@ -41,15 +42,22 @@ def _extract_candidates(text: str) -> list[str]:
     candidates = []
     for match in _NAME_PATTERN.finditer(text):
         word = match.group(1).strip()
-        if word.lower() not in _STOP_WORDS and len(word) >= 3:
-            candidates.append(word)
+        if len(word) < 3:
+            continue
+        lowered = word.lower()
+        # Reject single stopwords and bigrams made only of stopwords
+        # ("Side Effects" appears in nearly every medicine title).
+        if lowered in _STOP_WORDS or all(tok in _STOP_WORDS for tok in lowered.split()):
+            continue
+        candidates.append(word)
     return candidates
 
 
 def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
     """Return the shared response schema for a voted web result, else None.
 
-    Uses ``duckduckgo_search`` to fetch snippets, then votes on the most
+    Uses ``ddgs`` (the renamed ``duckduckgo_search`` package; the old import
+    is kept as a fallback) to fetch snippets, then votes on the most
     frequently mentioned drug name across them. Returns None on any failure
     so the endpoint falls through to the clean not-found response.
     """
@@ -57,19 +65,28 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
         return None
 
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS  # current package name (duckduckgo_search was renamed)
     except ImportError:
-        log.warning("duckduckgo_search not installed — tier 3 disabled")
-        return None
+        try:
+            from duckduckgo_search import DDGS
+        except ImportError:
+            log.warning("ddgs not installed — tier 3 disabled")
+            return None
 
     search_query = f"{query} medicine strip tablet uses dosage"
 
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(search_query, max_results=top_k))
-    except Exception as exc:  # noqa: BLE001
-        log.debug("DuckDuckGo search failed for %r: %s", query, exc)
-        return None
+    results: list[dict] = []
+    for attempt in range(2):  # backends rate-limit intermittently; retry empty once
+        if attempt:
+            time.sleep(0.5)
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(search_query, max_results=top_k))
+        except Exception as exc:  # noqa: BLE001
+            log.debug("DuckDuckGo search failed for %r: %s", query, exc)
+            return None
+        if results:
+            break
 
     if not results:
         return None

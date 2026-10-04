@@ -64,8 +64,10 @@ the process, not just the code.
    name; 2 s per call, ~6 s ceiling so the demo never hangs. (Revised
    2026-10-04: the by-RxCUI OpenFDA query 404s for every RxCUI, and the old
    1.5 s per-call budget timed out good calls.)
-5. **`lookup/web_search.py`** — `duckduckgo_search` top-5 snippets with a
-   keyword-frequency vote; degradable, never load-bearing.
+5. **`lookup/web_search.py`** — `ddgs` top-5 snippets (renamed from
+   `duckduckgo_search` on 2026-10-04; old import kept as fallback) with a
+   keyword-frequency vote, one retry on empty, all-stopword bigrams
+   excluded; degradable, never load-bearing.
 6. **Report + rehearsal (Days 10-13)** — architecture write-up, demo script,
    wifi rehearsal, pre-warming EasyOCR.
 

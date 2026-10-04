@@ -14,7 +14,7 @@ rapidfuzz
 
 # Tier 2 / tier 3 lookups
 requests
-duckduckgo_search
+ddgs  # renamed from duckduckgo_search
 
 # Testing
 pytest
