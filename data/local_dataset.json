@@ -1,44 +1,61 @@
 [
   {
+    "name": "ACENEXT-P",
+    "generic_name": "Aceclofenac 100 mg + Paracetamol 325 mg",
+    "uses": "Relief of pain, inflammation, and swelling, including muscle pain, back pain, joint pain, toothache, arthritis, and pain from minor injuries.",
+    "dosage": "Typically 1 tablet once or twice daily as prescribed by the doctor. Take with food to reduce stomach irritation. Do not exceed the prescribed dose.",
+    "side_effects": "Indigestion, stomach pain, nausea, dizziness, and diarrhoea. Prolonged or excessive use may cause stomach, kidney, or liver problems."
+  },
+  {
+    "name": "BRUFEN 400",
+    "generic_name": "Ibuprofen 400 mg",
+    "uses": "Relief of pain, fever, and inflammation, including headache, toothache, body pain, menstrual pain, cold-related pain, and mild arthritis.",
+    "dosage": "Typically 400 mg up to 3 times daily as directed by a doctor. Take with or after food or milk. Do not exceed the prescribed dose.",
+    "side_effects": "Nausea, stomach pain, indigestion, heartburn, bloating, diarrhoea, and constipation. Long-term or excessive use can cause stomach bleeding or kidney problems."
+  },
+  {
     "name": "DOLO 650",
     "generic_name": "Paracetamol 650 mg",
-    "uses": "Fever and mild-to-moderate pain (headache, toothache, body ache).",
-    "dosage": "Typically 1 tablet every 4-6 hours as needed; do not exceed 4 g/day. Follow the prescriber.",
-    "side_effects": "Rare at normal doses; overdose can cause serious liver damage."
+    "uses": "Relief of fever and mild-to-moderate pain such as headache, toothache, muscle ache, body ache, sore throat, and pain associated with common cold.",
+    "dosage": "1 tablet when required, with at least 4 hours between doses. Do not take more than 4 tablets in 24 hours unless specifically directed by a doctor.",
+    "side_effects": "Generally well tolerated at recommended doses. May occasionally cause nausea or stomach discomfort. Excessive doses can cause serious liver damage."
   },
   {
-    "name": "AZEE 500",
-    "generic_name": "Azithromycin 500 mg",
-    "uses": "Bacterial infections of the throat, sinus, ear, chest, and skin.",
-    "dosage": "Commonly 1 tablet once daily for 3 days, or as prescribed.",
-    "side_effects": "Nausea, diarrhoea, stomach upset; rarely changes in heart rhythm."
+    "name": "GELUSIL MPS",
+    "generic_name": "Magnesium Hydroxide + Aluminium Hydroxide + Simethicone (Dimethicone)",
+    "uses": "Relief of acidity, heartburn, indigestion, sour stomach, and gas or bloating caused by trapped gas.",
+    "dosage": "For the liquid formulation, typically 5-10 mL (1-2 teaspoonfuls) after meals or when symptoms occur, as directed. Shake the bottle well before use.",
+    "side_effects": "May cause constipation, diarrhoea, nausea, or stomach discomfort. Excessive or prolonged use may cause electrolyte disturbances.",
+    "aliases": [
+      "GELUSIL"
+    ]
   },
   {
-    "name": "CROCIN ADVANCE",
-    "generic_name": "Paracetamol 500 mg",
-    "uses": "Fever and mild pain relief.",
-    "dosage": "1-2 tablets every 4-6 hours, max 8 tablets/day.",
-    "side_effects": "Generally well tolerated; liver toxicity in overdose."
+    "name": "LEVIPIL 500",
+    "generic_name": "Levetiracetam 500 mg",
+    "uses": "An anti-epileptic medicine used to prevent and control seizures (fits) in epilepsy. It may be used alone or with other anti-seizure medicines.",
+    "dosage": "Dose varies according to the type of seizure and individual response. Take exactly as prescribed, usually at the same time each day. It may be taken with or without food.",
+    "side_effects": "Sleepiness, dizziness, fatigue, weakness, decreased appetite, irritability, and mood or behavioural changes."
   },
   {
-    "name": "NEERAL 25",
-    "generic_name": "Metoprolol Succinate 25 mg (extended release)",
-    "uses": "High blood pressure, angina, and heart-rhythm control.",
-    "dosage": "Once daily, as prescribed; do not stop abruptly.",
-    "side_effects": "Slow pulse, dizziness, fatigue, cold hands and feet."
+    "name": "LEVOCETIRIZINE 5",
+    "generic_name": "Levocetirizine 5 mg",
+    "uses": "Relief of allergy symptoms such as sneezing, runny or blocked nose, watery or itchy eyes, itching, hives, and other allergic skin reactions.",
+    "dosage": "Adults and adolescents generally take 5 mg once daily, usually in the evening or as directed by a doctor.",
+    "side_effects": "Sleepiness, tiredness, dry mouth, headache, and dizziness."
   },
   {
-    "name": "PANTODAC 40",
-    "generic_name": "Pantoprazole 40 mg",
-    "uses": "Acid reflux, heartburn, and stomach ulcers.",
-    "dosage": "1 tablet before breakfast, typically for 2-8 weeks as prescribed.",
-    "side_effects": "Headache, flatulence, diarrhoea; long-term use can lower magnesium and B12."
+    "name": "LOPERAMIDE 2",
+    "generic_name": "Loperamide 2 mg",
+    "uses": "Short-term control of diarrhoea by reducing the movement of the intestines.",
+    "dosage": "For adults, a common regimen is 4 mg initially followed by 2 mg after each loose stool. Do not exceed the recommended daily maximum and use only as directed. Do not use for bloody diarrhoea or dysentery unless specifically advised by a doctor.",
+    "side_effects": "Constipation, nausea, stomach discomfort, headache, dizziness, and abdominal cramps."
   },
   {
-    "name": "VELMOL",
-    "generic_name": "Aceclofenac 100 mg + Serratiopeptidase 15 mg",
-    "uses": "Pain and inflammation with swelling - sprains, joint pain, dental pain.",
-    "dosage": "1 tablet twice daily after food, as prescribed.",
-    "side_effects": "Stomach irritation, nausea; avoid in ulcer disease and kidney problems."
+    "name": "METROGYL 400",
+    "generic_name": "Metronidazole 400 mg",
+    "uses": "Treatment of infections caused by certain bacteria and parasites, including some infections of the stomach and intestines, skin, reproductive organs, bones, lungs, and other areas.",
+    "dosage": "The dose and duration vary considerably depending on the infection. A commonly prescribed adult regimen is 400 mg 2-3 times daily, but it should be taken strictly according to the doctor's prescription and the complete course should be finished.",
+    "side_effects": "Nausea, vomiting, diarrhoea, abdominal discomfort, headache, loss of appetite, and a metallic taste. Avoid alcohol during treatment and for the period advised after the last dose."
   }
 ]

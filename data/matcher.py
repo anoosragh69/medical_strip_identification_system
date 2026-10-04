@@ -6,7 +6,8 @@ it must work with zero internet, so it resolves first in server/main.py.
 Matching strategy: token_set_ratio handles the common case where the OCR text
 contains the strip name mixed with other printed text ("AZEE 500 Azithromycin
 Tablets IP" vs dataset name "AZEE 500"); WRatio is a second opinion tuned to
-catch one-token order flips ("500 Azee"). The higher of the two wins.
+catch one-token order flips ("500 Azee"); partial_ratio catches the name
+glued to neighbouring OCR text. The higher of the three wins.
 
 Guard: WRatio's partial-ratio component can inflate scores for unrelated names
 (an unknown "TYLENOL 500 ..." strip scored 85.5 against "AZEE 500"), so a name
@@ -50,11 +51,19 @@ def _normalize(text: str) -> str:
 
 
 def score_pair(ocr_text: str, name: str) -> float:
-    """Score one OCR string against one dataset name."""
+    """Score one OCR string against one dataset name.
+
+    partial_ratio is the third opinion: when the name sits inside a longer
+    OCR line but glued to neighbouring text (real photo read
+    "RLevocetirizine Dihydrochloride..." -> the expected "LEVOCETIRIZINE 5"
+    scored only 57 on token-set/WRatio despite being fully present), the
+    token-set comparison misses it. Coverage still guards the result.
+    """
     ocr_text, name = _normalize(ocr_text), _normalize(name)
     return max(
         fuzz.token_set_ratio(ocr_text, name),
         fuzz.WRatio(ocr_text, name),
+        fuzz.partial_ratio(ocr_text, name),
     )
 
 
@@ -77,6 +86,11 @@ def match_local(
 
     Entries look like:
     {"name": "", "generic_name": "", "uses": "", "dosage": "", "side_effects": ""}
+
+    Optional "aliases" list extra printed forms of the same medicine
+    ("GELUSIL MPS" is never OCR'd whole on the real photo - the OCR stops at
+    "Gelusile" - so the entry carries alias "GELUSIL"). An alias must itself
+    pass score + coverage; a hit returns the canonical entry name.
     """
     if dataset is None:
         dataset = load_dataset()
@@ -89,13 +103,15 @@ def match_local(
         name = entry.get("name", "")
         if not name:
             continue
-        score = score_pair(text, name)
-        if score < score_cutoff:
-            continue
-        if score < NEAR_PERFECT_SCORE and not _fully_covered(name, normalised_text):
-            continue
-        if score > best_score:
-            best_name, best_score, best_record = name, score, entry
+        candidates = [name] + [a for a in entry.get("aliases", []) if a]
+        for candidate in candidates:
+            score = score_pair(text, candidate)
+            if score < score_cutoff:
+                continue
+            if score < NEAR_PERFECT_SCORE and not _fully_covered(candidate, normalised_text):
+                continue
+            if score > best_score:
+                best_name, best_score, best_record = name, score, entry
 
     if not best_record:
         return None

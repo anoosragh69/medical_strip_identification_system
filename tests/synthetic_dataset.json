@@ -1,0 +1,44 @@
+[
+  {
+    "name": "DOLO 650",
+    "generic_name": "Paracetamol 650 mg",
+    "uses": "Fever and mild-to-moderate pain (headache, toothache, body ache).",
+    "dosage": "Typically 1 tablet every 4-6 hours as needed; do not exceed 4 g/day. Follow the prescriber.",
+    "side_effects": "Rare at normal doses; overdose can cause serious liver damage."
+  },
+  {
+    "name": "AZEE 500",
+    "generic_name": "Azithromycin 500 mg",
+    "uses": "Bacterial infections of the throat, sinus, ear, chest, and skin.",
+    "dosage": "Commonly 1 tablet once daily for 3 days, or as prescribed.",
+    "side_effects": "Nausea, diarrhoea, stomach upset; rarely changes in heart rhythm."
+  },
+  {
+    "name": "CROCIN ADVANCE",
+    "generic_name": "Paracetamol 500 mg",
+    "uses": "Fever and mild pain relief.",
+    "dosage": "1-2 tablets every 4-6 hours, max 8 tablets/day.",
+    "side_effects": "Generally well tolerated; liver toxicity in overdose."
+  },
+  {
+    "name": "NEERAL 25",
+    "generic_name": "Metoprolol Succinate 25 mg (extended release)",
+    "uses": "High blood pressure, angina, and heart-rhythm control.",
+    "dosage": "Once daily, as prescribed; do not stop abruptly.",
+    "side_effects": "Slow pulse, dizziness, fatigue, cold hands and feet."
+  },
+  {
+    "name": "PANTODAC 40",
+    "generic_name": "Pantoprazole 40 mg",
+    "uses": "Acid reflux, heartburn, and stomach ulcers.",
+    "dosage": "1 tablet before breakfast, typically for 2-8 weeks as prescribed.",
+    "side_effects": "Headache, flatulence, diarrhoea; long-term use can lower magnesium and B12."
+  },
+  {
+    "name": "VELMOL",
+    "generic_name": "Aceclofenac 100 mg + Serratiopeptidase 15 mg",
+    "uses": "Pain and inflammation with swelling - sprains, joint pain, dental pain.",
+    "dosage": "1 tablet twice daily after food, as prescribed.",
+    "side_effects": "Stomach irritation, nausea; avoid in ulcer disease and kidney problems."
+  }
+]
