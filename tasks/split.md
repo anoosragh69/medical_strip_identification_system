@@ -60,10 +60,12 @@ the process, not just the code.
    generic, uses, dosage, side effects, resolving tier, confidence), and the
    clean not-found state.
 4. **`lookup/openfda_rxnorm.py`** — RxNorm approximate match → canonical name
-   (properties fallback for unnamed candidates) → OpenFDA label by generic
-   name; 2 s per call, ~6 s ceiling so the demo never hangs. (Revised
-   2026-10-04: the by-RxCUI OpenFDA query 404s for every RxCUI, and the old
-   1.5 s per-call budget timed out good calls.)
+   (properties fallback for unnamed candidates) → relevance gate against the
+   OCR text (partial_ratio ≥ 55) → OpenFDA label by generic **or** brand
+   name; timeout/3 per call (3 sequential calls, true ~6 s ceiling) so the
+   demo never hangs. (Revised 2026-10-04: the by-RxCUI OpenFDA query 404s
+   for every RxCUI; the old 1.5 s split timed out good calls and the
+   half-split left a 9 s worst case.)
 5. **`lookup/web_search.py`** — `ddgs` top-5 snippets (renamed from
    `duckduckgo_search` on 2026-10-04; old import kept as fallback) with a
    keyword-frequency vote; all-stopword bigrams excluded, winners must

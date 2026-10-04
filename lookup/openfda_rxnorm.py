@@ -11,15 +11,19 @@ Flow:
        so when the name is missing, GET /rxcui/{id}/properties.json for the
        preferred RxNorm name instead — that is how INN/USAN pairs resolve
        ("paracetamol" → "acetaminophen", which openFDA does index).
-    3. GET OpenFDA /drug/label.json?search=openfda.generic_name:"<word>"
-       → label fields, then map them into the shared response schema.
+    3. Relevance gate: the canonical name must fuzzy-match the OCR text
+       (partial_ratio ≥ 55). Noisy OCR can match junk RxNorm products
+       ("ASC-JM-17" scored 44 against a real strip's text; real matches
+       measure ≥ 66), and rejecting here skips a pointless OpenFDA call.
+    4. GET OpenFDA /drug/label.json?search=openfda.generic_name:"<word>"
+       OR openfda.brand_name:"<word>" → label fields, mapped into the
+       shared response schema. The OR covers brand-word canonical names
+       ("Dulcolax" hits only via brand_name).
 
-Step 3 searches by generic name because the by-rxcui query
-(openfda.rxcui:"<id>") returns HTTP 404 for every RxCUI we tried — verified
-against both api.fda.gov and a direct requests call on 2026-10-04. The
-generic-name query returns 200 in ~1.0-1.3 s for real drugs and 404 for
-non-drug words, which doubles as the garbage gate: OCR noise that slips
-through approximateTerm dies here.
+Notes from 2026-10-04 probing: the by-rxcui query
+(openfda.rxcui:"<id>") returns HTTP 404 for every RxCUI we tried, so
+search is by name. A 404 doubles as the final garbage gate for words
+openFDA does not index (e.g. India-only brands like "Dulcoflex").
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ import re
 from typing import Any
 
 import requests
+from rapidfuzz import fuzz
 
 __all__ = ["lookup"]
 
@@ -36,9 +41,12 @@ log = logging.getLogger(__name__)
 
 RXNORM_BASE = "https://rxnav.nlm.nih.gov/REST"
 OPENFDA_BASE = "https://api.fda.gov/drug/label.json"
-# 2 s per call, 6 s ceiling. Measured on the demo network: RxNorm calls
-# 1.1-1.9 s, OpenFDA 1.0-1.3 s, so the old 1.5 s split timed out good calls.
+# 2 s per call, 3 sequential calls, 6 s ceiling. Measured on the demo
+# network: RxNorm calls 1.1-1.9 s, OpenFDA 1.0-1.3 s; the old 1.5 s split
+# timed out good calls, and dividing by 2 left a 9 s worst case.
 DEFAULT_TIMEOUT = 6.0
+# Gap between real matches (≥ 66.7) and junk (≤ 44.4) on measured pairs.
+_RELEVANCE_CUTOFF = 55.0
 
 
 def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
@@ -46,7 +54,8 @@ def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
 
     Candidates come back in score order from /approximateTerm; some carry no
     name (seen on real queries like "Paracetamol 650"), so fall back to the
-    preferred name from /rxcui/{id}/properties.json for the top RxCUI.
+    preferred name from /rxcui/{id}/properties.json for the top RxCUI. Every
+    name must clear the relevance gate against the OCR query.
     """
     try:
         resp = requests.get(
@@ -60,6 +69,9 @@ def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
         log.debug("RxNorm approximateTerm failed for %r: %s", query, exc)
         return None
 
+    def relevant(name: str) -> bool:
+        return fuzz.partial_ratio(name.lower(), query.lower()) >= _RELEVANCE_CUTOFF
+
     first_rxcui = None
     for candidate in candidates:
         rxcui = str(candidate.get("rxcui") or "").strip()
@@ -67,7 +79,9 @@ def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
         if rxcui and not first_rxcui:
             first_rxcui = rxcui
         if rxcui and name:
-            return rxcui, name
+            if relevant(name):
+                return rxcui, name
+            log.debug("RxNorm candidate %r not relevant to %r — scanning on", name, query)
 
     if not first_rxcui:
         return None
@@ -81,6 +95,9 @@ def _canonical_name(query: str, timeout: float) -> tuple[str, str] | None:
         name = str(resp.json().get("properties", {}).get("name") or "").strip()
     except (requests.RequestException, KeyError, TypeError, ValueError) as exc:
         log.debug("RxNorm properties failed for rxcui %s: %s", first_rxcui, exc)
+        return None
+    if name and not relevant(name):
+        log.debug("RxNorm properties name %r not relevant to %r", name, query)
         return None
     return (first_rxcui, name) if name else None
 
@@ -99,9 +116,9 @@ def _join(items: list[str] | None, sep: str = "; ") -> str:
 
 
 def _openfda_label(drug_word: str, timeout: float) -> dict[str, Any] | None:
-    """Fetch the OpenFDA label for a generic drug name and extract fields."""
+    """Fetch the OpenFDA label by generic OR brand name and extract fields."""
     params = {
-        "search": f'openfda.generic_name:"{drug_word}"',
+        "search": f'openfda.generic_name:"{drug_word}" OR openfda.brand_name:"{drug_word}"',
         "limit": 1,
     }
     try:
@@ -159,8 +176,8 @@ def lookup(query: str, timeout: float = DEFAULT_TIMEOUT) -> dict | None:
     if not query or not query.strip():
         return None
 
-    # Use half the timeout budget for each external call
-    per_call = timeout / 2
+    # Third of the timeout budget for each of the three sequential calls
+    per_call = timeout / 3
 
     match = _canonical_name(query, per_call)
     if not match:
