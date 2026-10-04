@@ -1,13 +1,16 @@
 """Tier 3 — web search fallback, best-effort only.
 
-Owner: Person B (see tasks/split.md). Top-K DuckDuckGo snippets, then a
-keyword-frequency vote over candidate drug names. Degrades to None when the
-network is unavailable; never load-bearing for the demo.
+Owner: Person B (see tasks/split.md). Top-K snippets via ``ddgs``, then a
+grounded vote over candidate drug names. Degrades to None when the network
+is unavailable; never load-bearing for the demo.
 
 Flow:
-    1. Search DuckDuckGo for the OCR text + " medicine strip tablet"
+    1. Query variants under one deadline: full OCR text + suffix, then the
+       focus token (longest ≥6-char alpha run — skips gibberish tails that
+       derail engines), then the auto backend chain as last resort
     2. Extract candidate drug names from the top-K snippet titles+bodies
-    3. Vote by frequency — the most-mentioned plausible drug name wins
+    3. Vote among candidates grounded in the OCR text: exact query tokens
+       first (the strip printed that name), then mention count (≥2 = consensus)
     4. Return the shared response schema with best-effort fields
 """
 
@@ -15,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 import time
 from collections import Counter
 
@@ -30,6 +34,9 @@ for _lib in ("ddgs", "primp", "hickory", "h2", "cookie_store"):
     logging.getLogger(_lib).setLevel(logging.WARNING)
 
 DEFAULT_TOP_K = 5
+# Wall-clock budget for the whole tier (all variants, all backends).
+_SEARCH_DEADLINE_S = 10.0
+_SUFFIX = "medicine strip tablet uses dosage"
 
 # Common filler words that are never drug names
 _STOP_WORDS = frozenset(
@@ -60,55 +67,49 @@ def _extract_candidates(text: str) -> list[str]:
     return candidates
 
 
-def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
-    """Return the shared response schema for a voted web result, else None.
+def _focus_token(query: str) -> str | None:
+    """Longest ≥6-char alpha run — the printed drug name on real strips."""
+    runs = re.findall(r"[A-Za-z]{6,}", query)
+    return max(runs, key=len) if runs else None
 
-    Uses ``ddgs`` (the renamed ``duckduckgo_search`` package; the old import
-    is kept as a fallback) to fetch snippets, then votes among candidate drug
-    names that are grounded in the OCR text (exact token first, then votes).
-    Returns None on any failure so the endpoint falls through to the clean
-    not-found response.
+
+def _fetch(search_query: str, top_k: int, backend: str, budget_s: float) -> list[dict]:
+    """Top-K snippets, waiting at most budget_s.
+
+    ddgs' own timeout is per engine and its auto chain tries several, so a
+    single call can outlast the tier deadline (measured 15.9 s total while
+    engines were rate-limited). Run it on a daemon thread and stop waiting at
+    the budget instead — the demo must never hang on a slow backend.
     """
-    if not query or not query.strip():
-        return None
+    box: dict[str, list[dict]] = {}
 
-    try:
-        from ddgs import DDGS  # current package name (duckduckgo_search was renamed)
-    except ImportError:
+    def run() -> None:
         try:
-            from duckduckgo_search import DDGS
-        except ImportError:
-            log.warning("ddgs not installed — tier 3 disabled")
-            return None
+            from ddgs import DDGS  # current package name (duckduckgo_search was renamed)
 
-    search_query = f"{query} medicine strip tablet uses dosage"
-
-    # First pass pins the fast, consistently-responsive engines; if they come
-    # back empty (they rate-limit intermittently - ddgs raises "No results
-    # found."), retry once against the full auto backend chain. A slow first
-    # pass means the network itself is down, so skip the second attempt
-    # instead of stacking another 8+ s of timeouts.
-    results: list[dict] = []
-    started = time.monotonic()
-    for attempt, backend in enumerate(("mojeek,yahoo,startpage", "auto")):
-        if attempt:
-            if time.monotonic() - started >= 5.0:
-                break
-            time.sleep(0.5)
-        try:
-            with DDGS(timeout=4) as ddgs:
-                results = ddgs.text(search_query, max_results=top_k, backend=backend)
+            with DDGS(timeout=max(2, min(4, int(budget_s)))) as ddgs:
+                box["r"] = ddgs.text(search_query, max_results=top_k, backend=backend)
         except Exception as exc:  # noqa: BLE001 - empty result set is raised too
-            log.debug("DuckDuckGo search (backend=%s) failed for %r: %s", backend, query, exc)
-            results = []
-            continue
-        if results:
-            break
+            log.debug("DuckDuckGo search (backend=%s) failed: %s", backend, exc)
+            box["r"] = []
 
-    if not results:
-        return None
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    thread.join(budget_s)
+    if thread.is_alive():
+        log.debug("DuckDuckGo search (backend=%s) exceeded %.1fs budget", backend, budget_s)
+        return []
+    return box.get("r", [])
 
-    # Collect candidate drug names from all snippets
+
+def _vote(results: list[dict], query_tokens: list[str]) -> dict | None:
+    """Build the shared-schema response from the best OCR-grounded candidate.
+
+    Grounding keeps condition/platform words ("Constipation", "DailyMed")
+    from winning when engines return generic pages; exact query tokens rank
+    above raw counts because the strip printed that name. Fuzzy match so
+    minor OCR typos still pass.
+    """
     vote_counter: Counter[str] = Counter()
     snippet_texts: list[str] = []
 
@@ -123,12 +124,6 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
     if not vote_counter:
         return None
 
-    # Ground candidates in the OCR text first, then vote among them: engines
-    # return generic drug pages even for noisy queries, and their condition or
-    # platform words ("Constipation", "DailyMed") can out-vote the real
-    # product name. Fuzzy match so minor OCR typos still pass.
-    query_tokens = [tok for tok in re.findall(r"[a-z]+", query.lower()) if len(tok) >= 4]
-
     def grounded(name: str) -> bool:
         name_l = name.lower()
         return any(fuzz.partial_ratio(tok, name_l) >= 85 for tok in query_tokens)
@@ -139,7 +134,7 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
         if grounded(name) and count >= 2  # >=2 mentions = real consensus
     ]
     if not ranked:
-        log.debug("No grounded web candidate for %r (top: %s)", query, vote_counter.most_common(3))
+        log.debug("No grounded web candidate (top: %s)", vote_counter.most_common(3))
         return None
     # Exact query tokens win first (the strip printed that name), then vote
     # count; ties go to shorter names
@@ -150,14 +145,8 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
     count, winner = ranked[0]
 
     # Try to extract uses/dosage from the snippets mentioning the winner
-    uses_snippets = []
-    for text in snippet_texts:
-        if winner.lower() in text.lower():
-            uses_snippets.append(text)
-
+    uses_snippets = [text for text in snippet_texts if winner.lower() in text.lower()]
     uses_text = "; ".join(uses_snippets)[:500] if uses_snippets else ""
-
-    log.info("Web search vote for %r: %s (count=%d)", query, winner, count)
 
     return {
         "matched": True,
@@ -169,3 +158,64 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
         "side_effects": "",
         "confidence": min(0.3 + (count - 2) * 0.05, 0.5),  # never very high — it's best-effort
     }
+
+
+def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
+    """Return the shared response schema for a voted web result, else None.
+
+    Uses ``ddgs`` (the renamed ``duckduckgo_search`` package; the old import
+    is kept as a fallback). Query variants and backends are tried under one
+    wall-clock deadline; an exact-token vote returns immediately, a fuzzy
+    one is kept as fallback while better variants are attempted. Returns
+    None on any failure so the endpoint falls through to the clean
+    not-found response.
+    """
+    if not query or not query.strip():
+        return None
+
+    try:
+        import ddgs  # noqa: F401 - current package name (duckduckgo_search was renamed)
+    except ImportError:
+        try:
+            import duckduckgo_search  # noqa: F401
+        except ImportError:
+            log.warning("ddgs not installed — tier 3 disabled")
+            return None
+
+    query_tokens = [tok for tok in re.findall(r"[a-z]+", query.lower()) if len(tok) >= 4]
+
+    # Variant order: full OCR text first (clean queries resolve here), then
+    # the focus token (gibberish tails derail engines), then the auto backend
+    # chain on the focus variant as last resort. Pinned backends are the
+    # fast, consistently-responsive ones.
+    variants = list(dict.fromkeys(v for v in (query, _focus_token(query)) if v))
+    plan: list[tuple[str, str]] = [
+        (f"{variant} {_SUFFIX}", "mojeek,yahoo,startpage") for variant in variants
+    ]
+    plan.append((f"{variants[-1]} {_SUFFIX}", "auto"))
+
+    deadline = time.monotonic() + _SEARCH_DEADLINE_S
+    fallback: dict | None = None
+
+    for i, (search_query, backend) in enumerate(plan):
+        left = deadline - time.monotonic()
+        if left < 1.5:
+            break
+        if i:
+            time.sleep(0.3)
+        results = _fetch(search_query, top_k, backend, deadline - time.monotonic())
+        if not results:
+            continue
+
+        response = _vote(results, query_tokens)
+        if response is None:
+            continue
+        if response["name"].lower() in query_tokens:
+            log.info("Web search vote for %r: %s (exact)", query, response["name"])
+            return response
+        if fallback is None:
+            fallback = response  # fuzzy-grounded: keep looking for an exact one
+
+    if fallback:
+        log.info("Web search vote for %r: %s (fuzzy fallback)", query, fallback["name"])
+    return fallback

@@ -72,12 +72,17 @@ the process, not just the code.
    out good calls; the Dulcoflex phone photo's noisy OCR needed the focus
    retry — now resolves 5/5 in ~5 s via Dulcolax/bisacodyl.)
 5. **`lookup/web_search.py`** — `ddgs` top-5 snippets (renamed from
-   `duckduckgo_search` on 2026-10-04; old import kept as fallback); the
-   vote runs only among OCR-grounded candidates (partial_ratio ≥ 85 vs a
-   4+ char query token) with exact query tokens preferred over raw counts,
-   all-stopword bigrams excluded; pinned fast backends first, auto-chain
-   retry skipped when the first attempt was slow (dead network); ddgs
-   loggers silenced to WARNING; degradable, never load-bearing.
+   `duckduckgo_search` on 2026-10-04; old import kept as fallback);
+   query variants under one hard 10 s deadline — full OCR text, focus
+   token (longest ≥6-char alpha run, skips gibberish tails), then the
+   auto backend chain — each fetch joined on a daemon thread because
+   ddgs' own timeout is per engine and can overrun the budget (measured
+   15.9 s while engines were rate-limited); the vote runs only among
+   OCR-grounded candidates (partial_ratio ≥ 85 vs a 4+ char query token)
+   with exact query tokens preferred over raw counts — an exact winner
+   returns immediately, a fuzzy one is kept as fallback while better
+   variants are tried; all-stopword bigrams excluded; ddgs loggers
+   silenced to WARNING; degradable, never load-bearing.
 6. **Report + rehearsal (Days 10-13)** — architecture write-up, demo script,
    wifi rehearsal, pre-warming EasyOCR.
 
