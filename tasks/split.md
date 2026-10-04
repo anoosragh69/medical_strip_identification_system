@@ -59,8 +59,11 @@ the process, not just the code.
 3. **`client/`** — camera and gallery capture, upload, result card (name,
    generic, uses, dosage, side effects, resolving tier, confidence), and the
    clean not-found state.
-4. **`lookup/openfda_rxnorm.py`** — RxNorm → RxCUI → OpenFDA label with a ~3 s
-   timeout so the demo never hangs.
+4. **`lookup/openfda_rxnorm.py`** — RxNorm approximate match → canonical name
+   (properties fallback for unnamed candidates) → OpenFDA label by generic
+   name; 2 s per call, ~6 s ceiling so the demo never hangs. (Revised
+   2026-10-04: the by-RxCUI OpenFDA query 404s for every RxCUI, and the old
+   1.5 s per-call budget timed out good calls.)
 5. **`lookup/web_search.py`** — `duckduckgo_search` top-5 snippets with a
    keyword-frequency vote; degradable, never load-bearing.
 6. **Report + rehearsal (Days 10-13)** — architecture write-up, demo script,
@@ -96,8 +99,8 @@ class MatchResult:
     record: dict | None     # the matched dataset entry, so the response builder needn't re-read the dataset
 def match_local(text: str, score_cutoff: float = 80.0) -> MatchResult | None: ...
 
-# lookup/openfda_rxnorm.py  (B)
-def lookup(query: str, timeout: float = 3.0) -> dict | None: ...
+# lookup/openfda_rxnorm.py  (B)  — default timeout revised 3.0 → 6.0 on 2026-10-04
+def lookup(query: str, timeout: float = 6.0) -> dict | None: ...
 
 # lookup/web_search.py  (B)
 def search(query: str, top_k: int = 5) -> dict | None: ...
