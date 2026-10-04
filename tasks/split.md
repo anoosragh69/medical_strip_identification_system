@@ -66,8 +66,10 @@ the process, not just the code.
    1.5 s per-call budget timed out good calls.)
 5. **`lookup/web_search.py`** — `ddgs` top-5 snippets (renamed from
    `duckduckgo_search` on 2026-10-04; old import kept as fallback) with a
-   keyword-frequency vote, one retry on empty, all-stopword bigrams
-   excluded; degradable, never load-bearing.
+   keyword-frequency vote; all-stopword bigrams excluded, winners must
+   fuzzy-match the OCR text (partial_ratio ≥ 85) or they are discarded,
+   pinned fast backends first with one auto-chain retry; degradable,
+   never load-bearing.
 6. **Report + rehearsal (Days 10-13)** — architecture write-up, demo script,
    wifi rehearsal, pre-warming EasyOCR.
 

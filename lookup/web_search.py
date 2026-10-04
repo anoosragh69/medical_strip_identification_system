@@ -18,6 +18,8 @@ import re
 import time
 from collections import Counter
 
+from rapidfuzz import fuzz
+
 __all__ = ["search"]
 
 log = logging.getLogger(__name__)
@@ -75,16 +77,20 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
 
     search_query = f"{query} medicine strip tablet uses dosage"
 
+    # First pass pins the fast, consistently-responsive engines; if they come
+    # back empty (they rate-limit intermittently - ddgs raises "No results
+    # found."), retry once against the full auto backend chain.
     results: list[dict] = []
-    for attempt in range(2):  # backends rate-limit intermittently; retry empty once
+    for attempt, backend in enumerate(("mojeek,yahoo,startpage", "auto")):
         if attempt:
             time.sleep(0.5)
         try:
-            with DDGS() as ddgs:
-                results = list(ddgs.text(search_query, max_results=top_k))
-        except Exception as exc:  # noqa: BLE001
-            log.debug("DuckDuckGo search failed for %r: %s", query, exc)
-            return None
+            with DDGS(timeout=4) as ddgs:
+                results = ddgs.text(search_query, max_results=top_k, backend=backend)
+        except Exception as exc:  # noqa: BLE001 - empty result set is raised too
+            log.debug("DuckDuckGo search (backend=%s) failed for %r: %s", backend, query, exc)
+            results = []
+            continue
         if results:
             break
 
@@ -112,6 +118,17 @@ def search(query: str, top_k: int = DEFAULT_TOP_K) -> dict | None:
     # Require at least 2 mentions across snippets for any confidence
     if count < 2:
         log.debug("No strong consensus from web search for %r (best: %s x%d)", query, winner, count)
+        return None
+
+    # Ground the winner in the OCR text: search engines return generic drug
+    # pages even for gibberish queries, and their brand names (e.g. "DailyMed")
+    # would otherwise win the vote. Fuzzy match so minor OCR typos pass.
+    winner_l = winner.lower()
+    if not any(
+        len(tok) >= 4 and fuzz.partial_ratio(tok, winner_l) >= 85
+        for tok in re.findall(r"[a-z]+", query.lower())
+    ):
+        log.debug("Web winner %r not grounded in query %r — discarding", winner, query)
         return None
 
     # Try to extract uses/dosage from the snippets mentioning the winner
