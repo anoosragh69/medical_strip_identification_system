@@ -66,11 +66,13 @@ def _left(deadline: float, cap: float) -> float:
 def _req_timeout(deadline: float, cap: float) -> tuple[float, float]:
     """requests timeout (connect, read) honoring the tier deadline.
 
-    Connect is capped at 1 s so a slow connect can't push a call that starts
-    just before the deadline to 2× the remaining budget.
+    Connect is capped at 2 s so a call that starts just before the deadline
+    can't run to 2× the remaining budget, while still tolerating a slow
+    DNS/TLS handshake. (A 1 s cap proved too tight: the Cyclosporine test
+    failed both attempts on a connect that took just over 1 s.)
     """
     left = _left(deadline, cap)
-    return (min(1.0, left), left)
+    return (min(2.0, left), left)
 
 
 def _focus_token(query: str) -> str | None:
